@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Geotrivia Lösungen untereinander
 // @namespace    jago/geotrivia-loesungen-untereinander
-// @version      1.1.0
+// @version      1.1.1
 // @description  Zeigt auf geotrivia.com am Spielende alle Lösungsboxen auf einmal statt im Blätterer "‹ 1 / 8 ›": auf breiten Fenstern als Spalte rechts neben dem Ergebnis, sonst untereinander. Gilt für alle Spiele mit diesem Blätterer, z. B. GeoRankle, GeoPaint, GeoDecide und GeoConnections.
 // @author       jago/claude
 // @license      MIT
@@ -59,6 +59,13 @@
     }
     .${TRACK_CLASS} > * { width: 100% !important; }
     .${NAV_CLASS} { display: none !important; }
+
+    /* Fehler der Seite (GeoRoute): Die Kartenbeschriftung "Russland / Ziel"
+       hat inline visibility: visible und scheint so aus der verborgenen
+       Lösungsansicht ins Ergebnis durch. */
+    .daily-result-screen [aria-hidden="true"].invisible [style*="visibility"] {
+      visibility: hidden !important;
+    }
 
     @media ${WIDE} {
       /* Spalte rechts neben dem 500 px breiten Ergebnis-Screen. Rahmen und
@@ -122,13 +129,15 @@
   function stack() {
     const screen = document.querySelector('.daily-result-screen');
     if (!screen) return; // Spiel läuft noch
-    screen.classList.add(SCREEN_CLASS);
     // äußerer Scrollbereich des Ergebnis-Screens
     const scroll = [...screen.children].find(
       (el) => getComputedStyle(el).overflowY === 'auto',
     );
 
-    for (const track of findTracks(screen)) {
+    const tracks = findTracks(screen);
+    // QR-Code nur weichen lassen, wenn es eine Lösungsspalte gibt
+    screen.classList.toggle(SCREEN_CLASS, tracks.length > 0);
+    for (const track of tracks) {
       const frame = track.parentElement;
       track.classList.add(TRACK_CLASS);
       frame.classList.add(FRAME_CLASS);
